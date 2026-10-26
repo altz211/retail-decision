@@ -1,1 +1,263 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Retail Decision Lab</title><meta name="description" content="An interactive retail analytics portfolio: diagnose margin, validate forecasts and explore inventory decisions."><link rel="stylesheet" href="assets/style.css"></head><body><aside><a class="brand" href="#">R<span> / </span>Decision Lab</a><p class="muted">RETAIL INTELLIGENCE</p><nav><a href="#overview">01 &nbsp; Performance</a><a href="#drivers">02 &nbsp; Profit drivers</a><a href="#inventory">03 &nbsp; Inventory planner</a><a href="#method">04 &nbsp; Methodology</a></nav><div class="aside-note">Portfolio research application<br><strong>Browser-local analysis</strong><br>No accounts. No file uploads to a server.</div></aside><main><header><span class="eyebrow">OPERATIONS / COMMERCIAL ANALYTICS</span><span class="badge" id="source">SYNTHETIC DEMO</span></header><section class="hero" id="overview"><h1>Revenue is a number.<br><em>Profit is a decision.</em></h1><p>Find what changed, inspect the evidence and turn limited inventory budgets into a clear action plan.</p><div class="toolbar"><label>Store<select id="store"><option>All stores</option></select></label><label>Currency label<select id="currency"><option>AED</option><option>SAR</option><option>USD</option></select></label><button id="reset" class="secondary">Load demo</button><label class="upload">Open daily CSV<input type="file" id="upload" accept=".csv,text/csv"></label><button id="template" class="secondary">Download sample CSV</button></div><p class="muted" id="quality" role="status"></p><p id="error" role="alert"></p><div class="metrics" id="metrics"></div></section><section id="drivers"><div class="section-title"><div><span class="eyebrow">01 / EXPLAIN THE CHANGE</span><h2>Follow the margin.</h2></div><span id="period" class="muted"></span></div><div class="split"><article class="card"><h3>Contribution by store</h3><p class="muted">Current period net revenue and contribution margin.</p><div id="stores"></div></article><article class="card"><h3>Profit change decomposition</h3><p class="muted">An exact arithmetic bridge, not a causal attribution.</p><div id="bridge"></div><p class="muted">Price and cost effects include product mix. Contribution excludes rent, payroll and other operating costs.</p></article></div></section><section id="inventory"><div class="section-title"><div><span class="eyebrow">02 / PLAN YOUR NEXT MOVE</span><h2>Put the budget to work.</h2></div><button id="export" class="secondary">Export plan</button></div><div class="card"><div class="toolbar"><label>Purchasing budget<input id="budget" type="number" min="0" max="10000000" step="100" value="12000"></label><label>Buffer days<input id="buffer" type="number" min="0" max="30" value="3"></label><label>Forecast policy<select id="model"><option value="weekday">Weekday average (last 28 days)</option><option value="mean">Daily average (last 28 days)</option></select></label></div><p id="plan-summary"></p><div class="table-wrap"><table><thead><tr><th>Store / SKU</th><th>Stock</th><th>Cover days</th><th>Target gap</th><th>Buy units</th><th>Spend</th><th>Backtest WAPE</th></tr></thead><tbody id="plan"></tbody></table></div><p class="muted">Budget allocation is a margin-per-cost greedy heuristic, not a globally optimal policy. Observed sales proxy demand; stockouts may hide unmet demand. No supplier capacity or pack-size constraints in this release.</p></div></section><section id="method"><span class="eyebrow">03 / KNOW THE LIMITS</span><h2>Inspectable by design.</h2><div class="split"><article class="card"><h3>Data contract</h3><p>One row per calendar day, store and SKU. Include zero-sales days. Inventory is end-of-day stock; discount is the total discount on gross units. Returns reverse discounted revenue and recover product cost, assuming resalable goods.</p><code>date, store, sku, category, units, unit_price, unit_cost, discount, returns, inventory, lead_days</code><p>The currency selector changes display labels only. Supply one currency per file; no foreign exchange conversion is performed.</p></article><article class="card"><h3>Validation & model evidence</h3><p>Backtests predict each of the last 28 observations using only earlier observations, with at least 28 training days. WAPE is total absolute error divided by total units; zero denominators are shown as unavailable.</p><p>Planning uses the latest stock snapshot for each SKU and estimates coverage over lead time plus buffer days. Missing daily records are reported; forecasts with gaps require caution.</p><p><strong>This release is a browser analytics prototype.</strong> No deployed MLOps, causal impact, savings claims or enterprise service guarantees. The repository includes automated analytical checks and a Pages deployment workflow.</p></article></div></section><footer>Retail Decision Lab · Built by Nafees Khan · Synthetic UAE retail scenario; no company affiliation.</footer></main><script type="module" src="assets/app.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width,initial-scale=1" name="viewport"/>
+  <title>
+   Retail Decision Lab
+  </title>
+  <meta content="Sales, margins and stock planning." name="description"/>
+  <link href="assets/dashboard.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <aside>
+   <a class="brand" href="#">
+    R
+    <span>
+     /
+    </span>
+    Decision Lab
+   </a>
+   <p class="muted">
+    RETAIL INTELLIGENCE
+   </p>
+   <nav>
+    <a href="#overview">
+     01   Performance
+    </a>
+    <a href="#drivers">
+     02   Profit drivers
+    </a>
+    <a href="#inventory">
+     03   Inventory planner
+    </a>
+    <a href="#method">
+     04   Methodology
+    </a>
+   </nav>
+   <div class="aside-note">
+    Built by Nafees Khan
+    <br/>
+    Files stay in your browser.
+   </div>
+  </aside>
+  <main>
+   <header>
+    <span class="eyebrow">
+     RETAIL OVERVIEW
+    </span>
+    <span class="badge" id="source">
+     SYNTHETIC DEMO
+    </span>
+   </header>
+   <section class="hero" id="overview">
+    <h1>
+     Sales, margins
+     <br/>
+     <em>
+      and what to order.
+     </em>
+    </h1>
+    <p>
+     Check store performance and plan your next order.
+    </p>
+    <div class="toolbar">
+     <label>
+      Store
+      <select id="store">
+       <option>
+        All stores
+       </option>
+      </select>
+     </label>
+     <label>
+      Display currency
+      <select id="currency">
+       <option>
+        AED
+       </option>
+       <option>
+        SAR
+       </option>
+       <option>
+        USD
+       </option>
+      </select>
+     </label>
+     <button class="secondary" id="reset">
+      Load demo
+     </button>
+     <label class="upload">
+      Open daily CSV
+      <input accept=".csv,text/csv" id="upload" type="file"/>
+     </label>
+     <button class="secondary" id="template">
+      Download sample CSV
+     </button>
+    </div>
+    <p class="muted" id="quality" role="status">
+    </p>
+    <p id="error" role="alert">
+    </p>
+    <div class="metrics" id="metrics">
+    </div>
+   </section>
+   <section id="drivers">
+    <div class="section-title">
+     <div>
+      <span class="eyebrow">
+       PERFORMANCE
+      </span>
+      <h2>
+       What changed?
+      </h2>
+     </div>
+     <span class="muted" id="period">
+     </span>
+    </div>
+    <div class="split">
+     <article class="card">
+      <h3>
+       Contribution by store
+      </h3>
+      <p class="muted">
+       Net sales and margin for this period.
+      </p>
+      <div id="stores">
+      </div>
+     </article>
+     <article class="card">
+      <h3>
+       Margin breakdown
+      </h3>
+      <p class="muted">
+       Change from the previous period.
+      </p>
+      <div id="bridge">
+      </div>
+      <p class="muted">
+       Includes product mix. Excludes operating expenses.
+      </p>
+     </article>
+    </div>
+   </section>
+   <section id="inventory">
+    <div class="section-title">
+     <div>
+      <span class="eyebrow">
+       REPLENISHMENT
+      </span>
+      <h2>
+       Next order
+      </h2>
+     </div>
+     <button class="secondary" id="export">
+      Export plan
+     </button>
+    </div>
+    <div class="card">
+     <div class="toolbar">
+      <label>
+       Purchasing budget
+       <input id="budget" max="10000000" min="0" step="100" type="number" value="12000"/>
+      </label>
+      <label>
+       Buffer days
+       <input id="buffer" max="30" min="0" type="number" value="3"/>
+      </label>
+      <label>
+       Forecast policy
+       <select id="model">
+        <option value="weekday">
+         Weekday average (last 28 days)
+        </option>
+        <option value="mean">
+         Daily average (last 28 days)
+        </option>
+       </select>
+      </label>
+     </div>
+     <p id="plan-summary">
+     </p>
+     <div class="table-wrap">
+      <table>
+       <thead>
+        <tr>
+         <th>
+          Store / SKU
+         </th>
+         <th>
+          Stock
+         </th>
+         <th>
+          Cover days
+         </th>
+         <th>
+          Target gap
+         </th>
+         <th>
+          Buy units
+         </th>
+         <th>
+          Spend
+         </th>
+         <th>
+          Backtest WAPE
+         </th>
+        </tr>
+       </thead>
+       <tbody id="plan">
+       </tbody>
+      </table>
+     </div>
+     <p class="muted">
+      Orders prioritise margin per unit of spend. Estimates use sales history and omit supplier limits and pack sizes.
+     </p>
+    </div>
+   </section>
+   <section id="method">
+    <span class="eyebrow">
+     NOTES
+    </span>
+    <h2>
+     How it works
+    </h2>
+    <div class="split">
+     <article class="card">
+      <h3>
+       CSV format
+      </h3>
+      <p>
+       One daily row per store and SKU, including zero-sales days. Use closing stock and total discounts. Returns assume the goods can be resold.
+      </p>
+      <code>
+       date, store, sku, category, units, unit_price, unit_cost, discount, returns, inventory, lead_days
+      </code>
+      <p>
+       Use one currency per file. The selector changes the label, not the amounts.
+      </p>
+     </article>
+     <article class="card">
+      <h3>
+       Forecasts and limits
+      </h3>
+      <p>
+       Forecasts use the last 28 days. Backtests predict up to 28 historical observations using earlier data only. WAPE measures total absolute error relative to sales.
+      </p>
+      <p>
+       Order targets cover lead time plus buffer days using the latest stock record. Missing dates and stockouts can distort forecasts.
+      </p>
+      <p>
+       Portfolio prototype with synthetic demo data. No server, saved accounts or live MLOps.
+      </p>
+     </article>
+    </div>
+   </section>
+   <footer>
+    Retail Decision Lab · Built by Nafees Khan · Synthetic UAE sample data.
+   </footer>
+  </main>
+  <script src="assets/dashboard.js" type="module">
+  </script>
+ </body>
+</html>

@@ -1,52 +1,49 @@
 # Retail Decision Lab
 
-An interactive, browser-local retail analytics portfolio by Nafees Khan. Built for GitHub Pages with no API keys, external scripts, package dependencies or backend.
+Sales, margins and stock planning. Built by Nafees Khan.
 
-## What works
+[Open the demo](https://altz211.github.io/retail-decision/)
 
-- Reproducible synthetic UAE retail scenario: 84 days, 3 stores, 6 SKUs.
-- Local CSV upload with schema, date, number and duplicate-key validation (5 MB / 30,000 rows maximum).
-- Equal-length observed-date period comparisons, contribution metrics, store comparisons and an exact profit bridge.
-- Weekday-average and daily-average forecasts, evaluated with rolling one-step historical backtests.
-- Budget-constrained replenishment heuristic and CSV action-plan export.
-- Automated analytical checks and GitHub Pages deployment.
+The demo uses 84 days of synthetic sales across three UAE stores. You can also open a CSV, compare store margins, switch forecast methods and export an order plan. Files stay in the browser.
 
-## Publish
+## Run locally
 
-1. Create a public repository called `retail-decision` on GitHub with default branch `main`.
-2. Add these files at the repository root, preserving `assets`, `tests`, and `.github/workflows`.
-3. In **Settings → Pages → Build and deployment**, select **GitHub Actions**.
-4. Run **Verify and deploy Pages** from Actions, or push a commit to main.
-5. Once deployment succeeds, use the URL shown by the workflow. For account `altz211`, the expected project URL is `https://altz211.github.io/retail-decision/` (not live until deployed).
+```sh
+python3 -m http.server 8000
+```
 
-Alternatively select **Deploy from a branch**, `main` and `/ (root)` in Pages settings. The site needs no build step; `npm test` can be run locally.
+Open `http://localhost:8000`. Run `npm test` with Node 22+ for the analytical checks. No dependencies to install.
 
-## Local checks
+## Files
 
-Node.js 22 or newer: `npm test`. For local viewing: `python3 -m http.server 8000`, then open `http://localhost:8000`.
+- `assets/dashboard.js` — controls, tables and exports
+- `assets/sales.js` — validation, margin calculations, forecasts and ordering
+- `assets/dashboard.css` — layout and styles
+- `tests/sales.test.js` — calculation checks
+- `.github/workflows/deploy.yml` — tests and GitHub Pages deployment
 
-## Data contract
+## CSV
 
-Required CSV columns:
+```text
+date,store,sku,category,units,unit_price,unit_cost,discount,returns,inventory,lead_days
+```
 
-`date,store,sku,category,units,unit_price,unit_cost,discount,returns,inventory,lead_days`
+One row per day/store/SKU, including zero-sales days. `inventory` is closing stock; `discount` is the total discount on gross units. `returns` counts returned units and assumes resalable stock. Maximum: 5 MB and 30,000 rows.
 
-One daily row per store/SKU. Supply zero-sales days explicitly and one currency per dataset. `inventory` is end-of-day stock. `discount` is the total currency discount across gross units. `returns` is a count of those units, assuming cost recovery for resalable returns. The currency control only changes labels.
+Use one currency per file. The currency control only changes the label.
 
-Net revenue = (units − returns) × (unit_price − discount / units), with zero units yielding zero revenue. Contribution = net revenue − (units − returns) × unit_cost. This is not operating or net profit.
+## Calculations
 
-## Analytical limitations
+Net sales = retained units × discounted unit price. Contribution subtracts product cost and excludes operating expenses. Returns reverse both discounted revenue and product cost.
 
-Forecasts model observed gross sales, not latent demand. Stockout-censored demand is not corrected. Daily gaps are warned about, not imputed. Period comparisons use equal counts of observed dates; missing entire dates may make calendar spans unequal. Inventory snapshots across series may be stale or unsynchronised. Backtests are one-step historical evaluations; they do not establish multi-day inventory outcomes or business savings.
+The margin breakdown reconciles volume, price/mix and cost/mix changes. It is an arithmetic explanation, not causal attribution. Periods use equal numbers of observed dates, which may span unequal calendar windows if dates are missing.
 
-The exact sequential contribution bridge separates retained volume, effective price/mix and cost/mix. Ordering affects attribution; this is arithmetic, not causal inference. Allocations rank positive-margin products by estimated margin per purchase currency unit; this greedy heuristic has no optimality guarantee. It ignores supplier minimums, pack sizes, transfers, inbound orders and capacity. Buffer days are a user assumption, not a calibrated service level.
+Forecasts use a 28-day daily or weekday average. Rolling one-step backtests use earlier observations only; WAPE is absolute error divided by actual units. Zero denominators show N/A. Sales are a proxy for demand, so stockouts and missing dates affect results.
 
-## Privacy and hosting
+Order targets cover lead time plus buffer days. A greedy rule allocates the budget by margin per purchase currency unit, then stock cover. It is not a globally optimal policy and omits pack sizes, inbound orders and supplier constraints. Different SKUs may have stock snapshots from different dates. No business savings are claimed.
 
-CSV contents are read in the browser, not transmitted by application code. No analytics, accounts, external fonts or persistence are included. GitHub still serves the public site and receives ordinary web requests. Files disappear from application memory when the page closes; do not mistake this prototype for a secure enterprise workspace. Public demo files contain synthetic data only.
+## Deploy
 
-GitHub Pages hosts the static interface; JavaScript performs analysis on the visitor's device. GitHub Actions runs checks/deployment, not an interactive Python service. This is a portfolio showcase, not a commercial SaaS deployment.
+Push to `main` with Pages set to **GitHub Actions**. The workflow runs tests before publishing.
 
-## AWS / MLOps roadmap (not implemented)
-
-Keep the analytical contract, replace browser baseline models with versioned Python training/inference, store dataset manifests and model lineage, add temporal evaluation gates and approved model promotion, monitor delayed errors and drift, then add authenticated organisation workspaces. Current CI is software CI, not an operational MLOps system.
+This is a static portfolio prototype. Analysis runs on the visitor's device; GitHub Actions handles tests and deployment. There is no backend or operational MLOps yet.
